@@ -68,6 +68,9 @@ if __name__ == '__main__':
         print(receiving(ser))
         time.sleep(1)
         #ser.write('at+cops=1,2,”46692”\r\n')
+        #print(receiving(ser))
+        #time.sleep(1)
+
         #ser.write('AT+SAPBR=3,1,"APN","CMNET"\r\n')  #中国移動 Configure bearer profile 1 
         ser.write('AT+SAPBR=3,1,"APN","internet.iot"\r\n')  #中華電信 Configure bearer profile 1  
         #ser.write('AT+CGDCONT=1,"IP","internet.iot"\r\n')
