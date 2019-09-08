@@ -29,7 +29,7 @@ def receiving(ser):
     ser.flushInput()    #清除接收緩衝區
     last_received=''
     while True:
-        time.sleep(0.05) #時間太短, 字元來不及傳回, 斷字
+        time.sleep(0.2) #時間太短, 字元來不及傳回, 斷字
         count = ser.inWaiting() #取得當下緩衝區字元數
         if count != 0:
             last_received = ser.read(count) 
@@ -43,57 +43,74 @@ if __name__ == '__main__':
     gpio_init()
     ser = serial.Serial("/dev/ttyAMA0",115200)  #Pi2
     #ser = serial.Serial("/dev/ttyS0",115200)  #Pi3 
+    if ser=='':
+        print("ser:null")
+        exit(0)
     #st1 = threading.Thread(target=receiving, args=(ser,))
     #st1.start()
-    try:
-        ser.write('AT+CPIN?\r\n') #SIM-car ?
+    time.sleep(0.2)
+    try:    
+        ser.write('AT\r\n')        #同步測試
+        print(receiving(ser))
+        time.sleep(0.5)  
+        ser.write('AT+CPIN?\r\n')   #SIM-car ?
         print(receiving(ser))
         time.sleep(0.5)
-        #ser.write('AT+CNMP=38\r\n') #LTE only
-        #print(receiving(ser))
-        #time.sleep(0.5)
-        #ser.write('AT+CMNB=3\r\n') #LTE(Cat-M1 and NB-IOT)
-        #print(receiving(ser))
-        #time.sleep(0.5)
+        ser.write('AT+CNMP=38\r\n') #LTE only
+        print(receiving(ser))
+        time.sleep(0.5)
+        ser.write('AT+CMNB=3\r\n') #LTE(Cat-M1 and NB-IOT)
+        print(receiving(ser))
+        time.sleep(0.5)
         #ser.write('AT+NBSC=1\r\n') #開啟擾碼
         #print(receiving(ser))
         #time.sleep(0.5)
-        ser.write('AT+CPSI?\r\n') #查詢註冊訊息
+        ser.write('AT+CPSI?\r\n')   #查詢 註冊訊息
         print(receiving(ser))
         time.sleep(1)
-        ser.write('AT+COPS?\r\n') #查詢
+        ser.write('AT+CGATT?\r\n')  #查詢 是否連卓
         print(receiving(ser))
         time.sleep(1)
-        ser.write('AT+CGNAPN\r\n') #查詢
-        print(receiving(ser))
-        time.sleep(1)
-        #ser.write('at+cops=1,2,”46692”\r\n')
+        #ser.write('AT+COPS?\r\n') #查詢(index,format,oper) Scan cells
         #print(receiving(ser))
         #time.sleep(1)
+        ser.write('AT+CSQ\r\n')     #查詢Rssi,Ber
+        print(receiving(ser))
+        time.sleep(1)
+        ser.write('AT+CGNAPN\r\n')  #查詢APN
+        print(receiving(ser))
+        time.sleep(1)
 
-        #ser.write('AT+SAPBR=3,1,"APN","CMNET"\r\n')  #中国移動 Configure bearer profile 1 
-        ser.write('AT+SAPBR=3,1,"APN","internet.iot"\r\n')  #中華電信 Configure bearer profile 1  
+        #ser.write('at+cops=1,2,”46692”\r\n')   #Connect to 中華電信
+        #ser.write('AT+SAPBR=3,1,"APN","CMNET"\r\n')  #中国移動
+        #ser.write('AT+SAPBR=3,1,"APN","internet"\r\n')  #中華電信 NB-IOT (低速)
+        #ser.write('AT+SAPBR=3,1,"APN","internet.iot"\r\n')  #中華電信 Cat-M1  
         #ser.write('AT+CGDCONT=1,"IP","internet.iot"\r\n')
-        #ser.write('at+cstt="internet"\r\n')
+        ser.write('at+cstt="internet.iot"\r\n')
         print(receiving(ser))
         time.sleep(4)
 
-        #ser.write('AT+CIICR\r\n') 
-        #print(receiving(ser))
-        #time.sleep(1)
-
-        ser.write('AT+SAPBR=2,1\r\n')  #To query the IP
-        #ser.write('AT+CIFSR\r\n') #Get local IP
+        ser.write('at+cops?\r\n')   #9 is NB-IOT,7 is CAT-M1
         print(receiving(ser))
         time.sleep(1)
 
-        #ser.write('AT+CIPPING="168.95.1.1"\r\n') 
-        #print(receiving(ser))
-        #time.sleep(1)
-
-        #ser.write('at+cipstart=”tcp”,”ftp.isu.edu.tw”,21\r\n') 
-        #print(receiving(ser))
-        #time.sleep(1)
+        ############啟用移動場景############
+        ser.write('AT+CIMI\r\n') 
+        print(receiving(ser))
+        time.sleep(1)
+        #############查看一下IP#############
+        #ser.write('AT+SAPBR=2,1\r\n')  #To query the IP
+        ser.write('AT+CIFSR\r\n') #Get local IP
+        print(receiving(ser))
+        time.sleep(1)
+        ##############用ping測試############
+        ser.write('AT+CIPPING="168.95.1.1"\r\n') 
+        print(receiving(ser))
+        time.sleep(1)
+        #############用TCP連線測試###########
+        ser.write('at+cipstart=”tcp”,”ftp.isu.edu.tw”,21\r\n') 
+        print(receiving(ser))
+        time.sleep(1)
         
         status=1
         while True:
@@ -111,7 +128,11 @@ if __name__ == '__main__':
                     pass
             time.sleep(3)
 
-    except KeyboardInterrupt:  
+    except KeyboardInterrupt: 
+        ser.write('AT+CIPSHUT\r\n')   #Shur Down module
+        print(receiving(ser))
+        time.sleep(0.2) 
+
         if ser != None:  
             ser.close()
     except:

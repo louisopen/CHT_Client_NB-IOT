@@ -39,7 +39,7 @@ def receiving(ser):
     ser.flushInput()    #清除接收緩衝區
     last_received=''
     while True:
-        time.sleep(0.05) #時間太短, 字元來不及傳回, 斷字
+        time.sleep(0.2) #時間太短, 字元來不及傳回, 斷字
         count = ser.inWaiting() #取得當下緩衝區字元數
         if count != 0:
             last_received = ser.read(count) 
@@ -53,13 +53,18 @@ if __name__ == '__main__':
     gpio_init()
     ser = serial.Serial("/dev/ttyAMA0",115200)  #Pi2
     #ser = serial.Serial("/dev/ttyS0",115200)  #Pi3 
+    if ser=='':
+        print("ser:null")
+        exit(0)
     #st1 = threading.Thread(target=receiving, args=(ser,))
     #st1.start()
+    time.sleep(0.2)
     try:
+        ser.write('AT\r\n')
         #ser.write('AT+HTTPTERM\r\n')    
-        #backstring = receiving(ser)    
-        #print(backstring)
-        #time.sleep(1)
+        backstring = receiving(ser)    
+        print(backstring)
+        time.sleep(1)
 
         #ser.write('AT+SAPBR=3,1,"CONTYPE","GPRS"\r\n') #Configure bearer profile 1
         #backstring = receiving(ser)    
