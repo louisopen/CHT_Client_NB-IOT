@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #coding=utf-8
+#尚未測試完成: 利用http協議直接傳送狀態回服務器, 在NB-IOT module
 
 #Setup Raspberry pi system 
 #sudo raspi-config      #Interfacing Options -> Serial login -> no, Serial hardware -> yes
