@@ -1,7 +1,6 @@
 ### NB-IOT_Client 
 
-> SIM7000C of NB-IOT module client on Raspberry Pi applications, SIM7000C 運行在樹莓派上的應用
-> SIM card(大卡) 採用中華電信CAT. M1 門市申請即可
+> SIM7000C of NB-IOT module client on Raspberry Pi applications, SIM7000C 運行在樹莓派上的應用, SIM card(大卡) 採用中華電信CAT. M1 門市申請即可
 
 #### 1. Close power-saving of the display on Raspberry Pi
 #### 先關閉視窗下螢幕休眠功能(當然也可以不用關閉)
@@ -13,8 +12,8 @@ sudo nano /etc/lightdm/lightdm.conf
 * xserver-command=X -s 0 –dpms
 * ...
 
-#### 2. How to login command line mode to run application in the X-windows mode? 
-#### 視窗模式開機自動開啟一個終端機模式, 並運行應用程序
+#### 2. Auto run application after log-in termainal in the X-Windows mode.
+#### 視窗模式下自動開啟一個終端機模式(用戶登入或自動登入), 並運行應用程序
 
 sudo nano /home/pi/.config/autostart/autoboot.desktop 
 * ...
@@ -40,6 +39,6 @@ or
 * python3 SIM7000iot.cht.py
 * ...
 
-#### 3. SIM7000Ciot.cht.py
+#### 3. SIM7000iot.cht.py
 
 
