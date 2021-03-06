@@ -54,7 +54,7 @@ def get_http():
     #print(receiving(ser))
 
 def post_http(param="SensorID"):
-    #apikey = "DKERAFHA5AUPXX335F"
+    #apikey = "DKERAFHAXXPXX335F"
     #headers = {"accept": "application/json","CK": apikey}
     #ser.write('AT+HTTPPARA="USERDATA","DKERAFHA5AUPXX335F"\r\n'.encode('utf-8'))
     ser.write('AT+HTTPPARA="USERDATA","id:Text&value:SIM7000"\r\n'.encode('utf-8'))
