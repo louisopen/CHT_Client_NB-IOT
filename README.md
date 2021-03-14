@@ -39,6 +39,5 @@ or
 * python3 SIM7000iot.cht.py
 * ...
 
-#### 3. SIM7000iot.cht.py
-
-
+#### 3. Coding/Testing SIM7000iot.cht.py
+#### 試試

@@ -28,13 +28,13 @@ import code
 ser=''
 MQTTHOST = "iot.cht.com.tw"
 MQTTPORT = 1883
-#apikey = "DKERAFHXXXXXXX335F"
-
+apikey = "DKERAFHXXXXXXX335F"
 DeviceNum = "18030600759"
 Sensor_Temp = "Temp"
 Sensor_Text = "Text"
-headers = {"accept": "application/json","CK": apikey}
-data = {"id":"Text","value":["SIM70"]}    #Json
+headers = '{"accept": "application/json","CK": '+apikey+'}'
+data='{"id":"Text","value":"SIM70"}'   #String
+#data={"id":"Text","value":["SIM70"]}    #Json
 
 def init_gpio():
     GPIO.setwarnings(False) 	#disable warnings
@@ -143,26 +143,10 @@ def close_http():
 
 
 
-def send_tcp_post(param=1):
-    #connect_tcp()
-    address = '/iot/v1/device/18030600759/rawdata'
-    ser.write('AT+CIPSTART="TCP","iot.cht.com.tw/iot/v1/device/18030600759/rawdata",8080\r\n'.encode('utf-8'))   #for CHT mqtt
-    print(receiving(4))
-    ser.write('AT+CIPSEND\r\n'.encode('utf-8'))
-    print(receiving(2))
-
-    message = "POST /post HTTP/1.1\r\n"
-    message += {"accept": "application/json","CK": apikey}
-    message += {"Content-Type": "application/json"}
-    message += {"Content-Length":31}
-    message += '\r\n'
-    ser.write((message+data).encode('utf-8'))
-    ser.write(chr(26).encode('utf-8'))      #結束輸入模式0x1A
-    print(receiving(3))
 
 def send_tcp(param=1):
     connect_tcp()
-    ser.write('AT+CIPSEND\r\n'.encode('utf-8'))
+    ser.write('AT+CIPSEND\r\n'.encode('utf-8')) 
     #ser.write('AT+CIPSEND="HEAD/HTTP/1.1\r\nHost:www.taobao.com\r\nConnection:keep-alive\r\n\r\n"'.encode('utf-8'))
     print(receiving(2))
     
@@ -177,8 +161,8 @@ def read_tcp(param=1):  #read back
     print(receiving(5))
 
 def connect_tcp():
-    ser.write('AT+CIPSTART="TCP","iot.cht.com.tw",1883\r\n'.encode('utf-8'))   #for CHT mqtt
-    #ser.write('AT+CIPSTART="TCP","www.taobao.com",80\r\n'.encode('utf-8'))
+    #ser.write('AT+CIPSTART="TCP","iot.cht.com.tw",1883\r\n'.encode('utf-8'))   #for CHT mqtt
+    ser.write('AT+CIPSTART="TCP","www.taobao.com",80\r\n'.encode('utf-8'))
     #ser.write('AT+CIPSTART="tcp","101.132.43.66","80"\r\n'.encode('utf-8'))
     #ser.write('AT+CIPSTART="UDP","101.132.43.66","80"\r\n'.encode('utf-8'))
     #ser.write('AT+CIPSTART="tcp","47.94.228.89","4066"\r\n'.encode('utf-8'))
@@ -196,8 +180,7 @@ def close_tcp():       #Close TCP/UDP
 
 
 def connect_mqtt():
-    #ser.write('AT+SMCONF="CLIENTID","FISH"\r\n'.encode('utf-8'))
-    ser.write('AT+SMCONF="CLIENTID","18030600759"\r\n'.encode('utf-8'))
+    ser.write('AT+SMCONF="CLIENTID","FISH"\r\n'.encode('utf-8'))
     print(receiving())
     ser.write('AT+SMCONF="KEEPTIME",60\r\n'.encode('utf-8'))
     print(receiving())
@@ -208,20 +191,19 @@ def connect_mqtt():
     ser.write('AT+SMCONF="PASSWORD",'+apikey+'\r\n'.encode('utf-8'))
     print(receiving())
 
-    ser.write('AT+SMCONF="TOPIC","/v1/device/18030600759/rawdata"\r\n'.encode('utf-8')) #device num.
+    ser.write('AT+SMCONF="TOPIC","/v1/device/'+DeviceNum+'/rawdata"\r\n'.encode('utf-8')) #device num.
     print(receiving())
 
     data=[{"id":"Text","value":["SIM7000CCC"]}] 
-    #ser.write('AT+SMCONF="MESSAGE",'.encode('utf-8') +'"'+ json.dumps(data)+'"\r\n'.encode('utf-8'))
-    #ser.write('AT+SMCONF="MESSAGE",'.encode('utf-8') +'"'+data+'"\r\n'.encode('utf-8'))
-    #ser.write('AT+SMCONF="MESSAGE","'.encode('utf-8') + json.dumps(data) +'"\r\n'.encode('utf-8'))
-    #print(receiving())
+    ser.write('AT+SMCONF="MESSAGE",'.encode('utf-8') + ('"'+ json.dumps(data)+'"\r\n').encode('utf-8'))
+    print(receiving())
 
-    ser.write('AT+SMCONF="URL","tcp://iot.cht.com.tw","1883"\r\n'.encode('utf-8'))
+    #ser.write('AT+SMCONF="URL","iot.cht.com.tw","1883"\r\n'.encode('utf-8'))
     #ser.write('AT+SMCONF="URL","iot.cht.com.tw"'.format())
-    #ser.write('AT+SMCONF="URL","iot.cht.com.tw"\r\n'.encode('utf-8'))
+    ser.write('AT+SMCONF="URL","iot.cht.com.tw"\r\n'.encode('utf-8'))
     print(receiving())
     ser.write('AT+SMCONN\r\n'.encode('utf-8'))
+    #Wait data for 3 sec.
     print(receiving(3))
 
 def publish_http(sensor_number="Text", sensor_value="SIM7000C"): #發佈
@@ -379,23 +361,22 @@ def function():
         #ping50()
         #############應用:TCP連線測試###########
         '''
-        #send_tcp_post()
         send_tcp()
         read_tcp()
         close_tcp()
         '''
         #############應用:HTTP連線測試##########
-        '''
+        
         #get_http()
         post_http()
         read_http()
         close_http()
-        '''
-        #############應用:MQTT連線測試##########
         
+        #############應用:MQTT連線測試##########
+        '''
         connect_mqtt()
         close_mqtt()
-        
+        '''
         status=1
         while True:
             localip()       #check & show my IP address
