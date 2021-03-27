@@ -1,6 +1,6 @@
 ### CHT_Client_NB-IOT 
 
-> Python client application SIM7000C of NB-IOT module on Raspberry Pi, SIM7000C終端應用運行在樹莓派上, CHT SIM card(大卡) 採用中華電信CAT. M1(門市申請即可)
+> Python client application SIM7000C of NB-IOT module on Raspberry Pi, SIM7000C終端應用運行在樹莓派上, SIM7000C NB-IoT/LTE/GPRS 擴展板模組, CHT SIM card(大卡) 採用中華電信CAT. M1(門市申請即可)
 
 #### 1. Close power-saving of the display on Raspberry Pi
 #### 先關閉視窗下螢幕休眠功能(當然也可以不用關閉)
