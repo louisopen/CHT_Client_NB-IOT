@@ -32,26 +32,23 @@ apikey = "DKERAFHXXXXXXX335F"      #需要替代自己的
 #DeviceNum = "18030600759"          #需要替代自己的
 DeviceNum = "25997573353"           #需要替代自己的
 '''
-#SensorsID="Temp" or "Text"         #魚場
+#SensorsID = "Temp" or "Text"
 data_cht = [{"id":"Temp","value":["25.0"]},{"id":"Text","value":["SIM7-"]}]
 '''
-#SensorsID="id" or "name" or "done" #發電廠
-data_cht = [{"id":"id","value":[2]},{"id":"name","value":["LOUIS"]},{"id":"done","value":[1]}]
+#SensorsID = "id" or "name" or "done"
+data_cht = [{"id":"id","value":[2]},{"id":"name","value":["JIM{"]},{"id":"done","value":[1]}]
 
-#data = '{id:4, name:LOUIS, done: True}'
-#data = [{"id":4, "name":"LOUIS", "done": "True"}]
-#data = [{"id":"4", "name":"LOUIS", "done": "True"}]
-#data = {"id":4,"name":"LOUIS","done":"True"}
-data = {"id":"id","value":[2]},{"id":"name","value":["LOUIS"]},{"id":"done","value":["True"]}
-#data = [{"id":"id","value":"2"},{"id":"name","value":"LOUIS"},{"id":"done","value":"True"}]
-#data = [{"id":"id","value":2},{"id":"name","value":"LOUIS"},{"id":"done","value":"True"}]
-#data = [{"id":"id","value":[2]},{"id":"name","value":["LOUIS"]},{"id":"done","value":["True"]}]
+data = {"id":"4","name":"LOUIS","done":"True"}   #39 for json
 
 def init_gpio():
     GPIO.setwarnings(False) 	#disable warnings
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(4,GPIO.OUT)     #PWR
     GPIO.setup(26,GPIO.IN,pull_up_down=GPIO.PUD_UP)  #DTR
+
+    #GPIO.output(4,GPIO.HIGH)
+    #time.sleep(2)
+    #GPIO.output(4,GPIO.LOW)
 
 def get_chtiot(DevicesID=DeviceNum, SensorsID="id"):
     '''Check local IP is ready'''
@@ -119,8 +116,9 @@ def post_http():
         init_http()
         #ser.write('AT+HTTPSSL=1\r\n'.encode('utf-8'))   #https (SSL)
         #print(receiving())
-        #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postreturn"' #my server
-        cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson"'  #my json server
+        #cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DeviceNum + '/rawdata"'  #device num.
+        cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postreturn"' #my server
+        #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson"'  #my json server
         #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson'+'?"id"="4"&"name"="LOUIS"&"done"="True"'   #my json
         ser.write((cmdstr+'\r\n').encode('utf-8'))
         print(receiving())
@@ -203,99 +201,6 @@ def init_http():
 def close_http():
     ser.write('AT+HTTPTERM\r\n'.encode('utf-8'))        #HTTP Terminal mode #若是已經關閉會得到ERROR
     print(receiving())
-
-
-
-def send_tcp(param=1):
-    '''Check local IP is ready before connect'''
-    connect_tcp()
-    ser.write('AT+CIPSEND\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSEND="HEAD/HTTP/1.1\r\nHost:www.taobao.com\r\nConnection:keep-alive\r\n\r\n"'.encode('utf-8'))
-    print(receiving(2))
-    
-    #ser.write('Hello!\r\n'.encode('utf-8'))    #for 101.132.43.66
-    ser.write('GET/HTTP/1.1'.encode('utf-8'))   #for www.taobao.com
-    #ser.write('1234567890ABCDEFGHIJ'.encode('utf-8')) #for 47.94.228.89
-
-    ser.write(chr(26).encode('utf-8'))          #結束輸入模式0x1A
-    print(receiving(3))
-    
-def read_tcp(param=1):  #read back
-    ser.write('AT+CIPSEND?\r\n'.encode('utf-8')) 
-    print(receiving(5))
-
-def connect_tcp():
-    '''Check local IP is ready'''
-    ser.write('AT+CIPSTART="TCP","postman-echo.com","80"\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="TCP","123.194.136.153",5000\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="TCP","www.taobao.com",80\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="tcp","101.132.43.66","80"\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="UDP","101.132.43.66","80"\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="tcp","47.94.228.89","4066"\r\n'.encode('utf-8'))
-    print(receiving(2))
-    #ser.write('AT+CIPATS=1,3\r\n'.encode('utf-8'))
-    #print(receiving(4))
-    ser.write('AT+CIPSEND\r\n'.encode('utf-8'))
-    print(receiving())
-    '''>
-    GET https://postman-echo.com/ip HTTP/1.0
-    Host:www.m2msupport.netConnection:keep-alive
-    Ctrl+Z
-    '''
-def close_tcp():       #Close TCP/UDP
-    ##################關閉連線###################
-    #ser.write('AT+CIPCLOSE=1\r\n'.encode('utf-8'))
-    ser.write('AT+CIPCLOSE\r\n'.encode('utf-8'))
-    print(receiving())
-
-
-
-
-def connect_mqtt():
-    '''Check local IP is ready'''
-    close_mqtt()
-    ser.write('AT+CNACT=1,"internet.iot"\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="URL","tcp://iot.cht.com.tw","1883"\r\n'.encode('utf-8'))
-    print(receiving())
-    #ser.write('AT+SMCONF="CLIENTID","FISH"\r\n'.encode('utf-8'))
-    ser.write('AT+SMCONF="CLIENTID","18030600759"\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="KEEPTIME",60\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="CLEANSS",1\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="QOS",0\r\n'.encode('utf-8'))
-    print(receiving())
-    cmdstr='AT+SMCONF="USERNAME","'+ apikey + '"'
-    ser.write((cmdstr+'\r\n').encode('utf-8'))
-    print(receiving())
-    cmdstr='AT+SMCONF="PASSWORD","'+ apikey + '"'
-    ser.write((cmdstr+'\r\n').encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="TOPIC","/v1/device/18030600759/rawdata"\r\n'.encode('utf-8')) #device num.
-    print(receiving())
-    '''
-    #cmdstr='AT+SMCONF="MESSAGE","'+ json.dumps(data_cht) +'"\r\n'
-    cmdstr='AT+SMCONF="MESSAGE","'+ str(data_cht) +'"\r\n'
-    #cmdstr='AT+SMCONF="MESSAGE","'+ str({"id":"Text","value":["SIM70"]})+'"\r\n'
-    ser.write(cmdstr.encode('utf-8'))
-    time.sleep(0.5)
-    print(receiving())
-    '''
-    ser.write('AT+SMCONN\r\n'.encode('utf-8'))
-    time.sleep(0.5)
-    print(receiving(5))
-
-    '''Mqtt Publish'''
-    cmdstr='AT+SMPUB="/v1/device/18030600759/rawdata",100,1,"'+ str(data_cht) +'"\r\n'
-    ser.write(cmdstr.encode('utf-8'))
-    time.sleep(0.5)
-    print(receiving(5))
-    
-def close_mqtt():       #Close TCP/UDP
-    ser.write('AT+SMDISC\r\n'.encode('utf-8'))
-    print(receiving(1))
 
 
 
@@ -457,31 +362,17 @@ def function():
         localip()
         #############應用:查詢連線狀態##########
         link_status()
-        #############應用:ping測試##############
-        #ping()
-        #ping50()
-        #############應用:TCP連線測試###########
-        '''
-        send_tcp()
-        read_tcp()
-        close_tcp()
-        '''
         #############應用:HTTP連線測試##########
         
         #get_http()
-        post_http()
+        #post_http()
         #get_chtiot(DeviceNum, SensorsID="id")
         #get_chtiot(DeviceNum, SensorsID="name")
         #get_chtiot(DeviceNum, SensorsID="done")
-        #post_chtiot(DeviceNum, data_cht)
+        post_chtiot(DeviceNum, data_cht)
         read_http()
         close_http()
         
-        #############應用:MQTT連線測試##########
-        '''
-        connect_mqtt()
-        close_mqtt()
-        '''
         status=1
         while True:
             localip()       #check & show my IP address

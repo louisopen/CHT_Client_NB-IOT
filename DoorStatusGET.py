@@ -3,7 +3,7 @@
 #測試: 利用http協議直接傳送狀態回服務器, 在CAT-M1
 '''NET LED: of SIM7000C
 Standby: 開機1秒閃爍週期
-Internet: 0.5秒閃爍週期
+Internet online: 0.5秒閃爍週期
 Shuntdowm: 是3秒閃爍週期
 PowerDown: 熄滅
 '''
@@ -28,13 +28,17 @@ import code
 ser=''
 MQTTHOST = "iot.cht.com.tw"
 MQTTPORT = 1883
-apikey = "DKERAFHXXXXXXX335F"
-DeviceNum = "18030600759"
-Sensor_Temp = "Temp"
-Sensor_Text = "Text"
-headers = '{"accept": "application/json","CK": '+apikey+'}'
-data='{"id":"Text","value":"SIM70"}'   #String
-#data={"id":"Text","value":["SIM70"]}    #Json
+apikey = "DKERAFHXXXXXXX335F"      #需要替代自己的
+#DeviceNum = "18030600759"          #需要替代自己的
+DeviceNum = "25997573353"           #需要替代自己的
+'''
+#SensorsID = "Temp" or "Text"
+data_cht = [{"id":"Temp","value":["25.0"]},{"id":"Text","value":["SIM7-"]}]
+'''
+#SensorsID = "id" or "name" or "done"
+data_cht = [{"id":"id","value":[2]},{"id":"name","value":["JIM{"]},{"id":"done","value":[1]}]
+
+data = {"id":"4","name":"LOUIS","done":"True"}   #39 for json
 
 def init_gpio():
     GPIO.setwarnings(False) 	#disable warnings
@@ -46,26 +50,77 @@ def init_gpio():
     #time.sleep(2)
     #GPIO.output(4,GPIO.LOW)
 
-def get_http():
+def get_chtiot(DevicesID=DeviceNum, SensorsID="id"):
+    '''Check local IP is ready'''
     close_http()    #若是已經關閉會得到ERROR
     init_http()
-    #ser.write('AT+HTTPPARA="URL","http://www.m2msupport.net/m2msupport/test.php"\r\n'.encode('utf-8'))  #GET "test"
-    #ser.write('AT+HTTPPARA="URL","http://httpbin.org/get"\r\n'.encode('utf-8'))     #GET the sample
-    ser.write('AT+HTTPPARA="URL","http://iot.cht.com.tw/iot"\r\n'.encode('utf-8')) #GET my test page
+    cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DevicesID +'/sensor/'+ SensorsID +'/rawdata"' #device num.
+    ser.write((cmdstr+'\r\n').encode('utf-8'))
+    print(receiving(2))
+    cmdstr='AT+HTTPPARA="USERDATA","CK: '+ apikey + '"'
+    ser.write((cmdstr+'\r\n').encode('utf-8'))
     print(receiving())
-    #ser.write('AT+HTTPPARA="PROPORT",1883\r\n'.encode('utf-8'))   #Restful 80 or 443
-    #ser.write('AT+HTTPPARA="CONTENT",multipart/form-data\r\n'.encode('utf-8'))
-    #ser.write('AT+HTTPPARA="CONTENT","text/plain; charset=UTF-8"\r\n'.encode('utf-8'))
-    #print(receiving())
-
     ser.write('AT+HTTPACTION=0\r\n'.encode('utf-8'))    #"GET" session return: +HTTPACTION: 0,601,0
     print(receiving(4))
+    #time.sleep(1)
 
-def post_http(param="SensorID"):
+def post_chtiot(DevicesID=DeviceNum, post_data=data_cht):
+    '''Check local IP is ready'''
     try:
         close_http()
         init_http()
-        ser.write('AT+HTTPPARA="URL","https://iot.cht.com.tw/iot/v1/device/18030600759/rawdata"\r\n'.encode('utf-8')) #device num.
+        #ser.write('AT+HTTPSSL=1\r\n'.encode('utf-8'))   #https (SSL)
+        #print(receiving())
+        cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DevicesID +'/rawdata"'  #device num.
+        ser.write((cmdstr+'\r\n').encode('utf-8'))
+        print(receiving())
+        cmdstr='AT+HTTPPARA="CONTENT","application/json"'
+        ser.write((cmdstr+'\r\n').encode('utf-8'))
+        print(receiving())
+        cmdstr='AT+HTTPPARA="USERDATA","CK: '+ apikey + '"'
+        ser.write((cmdstr+'\r\n').encode('utf-8'))
+        print(receiving())
+        cmdstr='AT+HTTPDATA=100,3000'
+        ser.write((cmdstr+'\r\n').encode('utf-8'))
+        time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
+        print(receiving())
+        ser.write(json.dumps(post_data).encode('utf-8')) #json or text
+        #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
+        print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
+        ser.write('AT+HTTPACTION=1\r\n'.encode('utf-8'))    #POST session return: +HTTPACTION: 1,601,0
+        print(receiving(4))
+    except:
+        GPIO.cleanup()
+
+def get_http():
+    '''Check local IP is ready'''
+    close_http()    #若是已經關閉會得到ERROR
+    init_http()
+    #cmdstr='AT+HTTPPARA="URL","http://www.m2msupport.net/m2msupport/test.php"' #GET "test"
+    #cmdstr='AT+HTTPPARA="URL","http://httpbin.org/get"'        #GET the sample
+    #cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot"'     #GET my test page
+    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/index.html"'    #GET my test page
+    cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getdata"'       #GET my test page
+    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getset/1"'      #GET my test page
+    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getpost/1/LOUIS"'    #my json server
+    ser.write((cmdstr+'\r\n').encode('utf-8'))
+    print(receiving(2))
+    ser.write('AT+HTTPACTION=0\r\n'.encode('utf-8'))    #"GET" session return: +HTTPACTION: 0,601,0
+    print(receiving(4))
+    #time.sleep(1)
+
+def post_http():
+    '''Check local IP is ready'''
+    try:
+        close_http()
+        init_http()
+        #ser.write('AT+HTTPSSL=1\r\n'.encode('utf-8'))   #https (SSL)
+        #print(receiving())
+        #cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DeviceNum + '/rawdata"'  #device num.
+        cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postreturn"' #my server
+        #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson"'  #my json server
+        #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson'+'?"id"="4"&"name"="LOUIS"&"done"="True"'   #my json
+        ser.write((cmdstr+'\r\n').encode('utf-8'))
         print(receiving())
         '''
         ser.write('AT+HTTPPARA="UA",80\r\n'.encode('utf-8'))   #tcp port: default is 80
@@ -74,59 +129,66 @@ def post_http(param="SensorID"):
         print(receiving())
         ser.write('AT+HTTPPARA="PROPORT",80\r\n'.encode('utf-8'))   #Proxy port ?
         print(receiving())
+        ser.write('AT+HTTPPARA="TIMEOUT",60\r\n'.encode('utf-8'))   #default 120sec.
+        print(receiving())
         '''
-        #ser.write('AT+HTTPPARA="CONTENT","text/html"\r\n'.encode('utf-8'))
-        ser.write('AT+HTTPPARA="CONTENT","application/json"\r\n'.encode('utf-8'))
-        #ser.write('AT+HTTPPARA="CONTENT","'+str(headers)+'"\r\n'.encode('utf-8'))
+        '''header setting'''
+        #ser.write('AT+HTTPPARA="CONTENT","text/plain"\r\n'.encode('utf-8'))
+        #ser.write('AT+HTTPPARA="CONTENT","multipart/form-data"\r\n'.encode('utf-8'))
+        #ser.write('AT+HTTPPARA="CONTENT","text/html"\r\n'.encode('utf-8'))  #Content-Type of headers
+        ser.write('AT+HTTPPARA="CONTENT","application/json"\r\n'.encode('utf-8'))  #Content-Type of headers
+        #ser.write('AT+HTTPPARA=CONTENT,application/x-www-form-urlencoded\r\n'.encode('utf-8')) #Content-Type of headers
         print(receiving())
-        #rawdatas=json.dumps(data)
-        #ser.write('AT+HTTPPARA="USERDATA",'+data+'\r\n'.encode('utf-8'))
-        #ser.write('AT+HTTPPARA="USERDATA","'+json.dumps(data)+'"\r\n'.encode('utf-8'))
-        #ser.write('AT+HTTPPARA="USERDATA",'+str(json.dumps(data))+'\r\n'.encode('utf-8'))
-        #ser.write('AT+HTTPPARA="USERDATA",{"accept":"application/json","CK": '+apikey+'"}\r\n'.encode('utf-8'))
-        #print(receiving())
-
-        ser.write('AT+HTTPDATA=94,5000\r\n'.encode('utf-8'))   #size,time(ms)
-        ser.write(str(headers+data).encode('utf-8'))
-        ser.write(chr(26).encode('utf-8'))
-        print(receiving())
-        
-        ser.write('AT+HTTPPARA="TIMEOUT",60\r\n'.encode('utf-8'))
+        #ser.write('AT+HTTPPARA="USERDATA","TEST MESSAGE"\r\n'.encode('utf-8'))
+        ser.write('AT+HTTPPARA="USERDATA","accept:application/json, CK: DKERAFHXXXXXXX335F"\r\n'.encode('utf-8'))
         print(receiving())
         #ser.write('AT+HTTPPARA?\r\n'.encode('utf-8'))
         #print(receiving(3))
-
-        #ser.write('AT+HTTPDATA=50,1000\r\n'.encode('utf-8')) #module will download it
-        #print(receiving(1))
+        '''body setting'''
+        '''
+        ser.write('AT+HTTPDATA=12,3000\r\n'.encode('utf-8'))   #size,time(ms) with in 3sec.
+        time.sleep(1)   #坑阿!!!
+        ser.write('TEST MESSAGE\r\n'.encode('utf-8'))   #for "text/html"
+        '''
+        ser.write('AT+HTTPDATA=100,3000\r\n'.encode('utf-8'))   #size,time(ms) with in 3sec.
+        time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
+        #ser.write('{"id":"4","name":"LOUIS","done":"True"}\r\n'.encode('utf-8')) #for "text/plain"        
+        #ser.write(json.dumps({"id":"4","name":"LOUIS","done":"True"}).encode('utf-8')) #json or text
+        ser.write(json.dumps(data).encode('utf-8')) #json or text
+        #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
+        print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
+        
         ser.write('AT+HTTPACTION=1\r\n'.encode('utf-8'))    #POST session return: +HTTPACTION: 1,601,0
-        print(receiving(5))
+        print(receiving(4))
         #ser.write('AT+HTTPSTATUS?\r\n'.encode('utf-8'))
+        #print(receiving(3))
+        #ser.write('AT+HTTPHEAD\r\n'.encode('utf-8'))
         #print(receiving(3))
     except:
         GPIO.cleanup()
 
 def read_http():
     ser.write('AT+HTTPREAD\r\n'.encode('utf-8'))        #read back the http
-    print(receiving(4))
+    print(receiving(6))
     '''
     ser.write('AT+SAPBR=1,1\r\n'.encode('utf-8'))
     print(receiving())
     ser.write('AT+HTTPREAD\r\n'.encode('utf-8'))        #read back the http
     print(receiving(4))
     '''
+
 def init_http():
+    '''Check local IP is ready'''
     '''Bearer Configure'''
     ser.write('AT+SAPBR=3,1,"APN","internet.iot"\r\n'.encode('utf-8'))
     print(receiving())
-    #ser.write('AT+SAPBR=1,1\r\n'.encode('utf-8'))   #Open Bearer
-    #print(receiving())
+    ser.write('AT+SAPBR=0,1\r\n'.encode('utf-8'))   #Close Bearer
+    print(receiving())
+    ser.write('AT+SAPBR=1,1\r\n'.encode('utf-8'))   #Open Bearer    firmware update need it
+    print(receiving())
     ser.write('AT+SAPBR=2,1\r\n'.encode('utf-8'))   #Query Bearer
     print(receiving())
     #ser.write('AT+SAPBR=4,1\r\n'.encode('utf-8'))   #取得 Bearer
-    #print(receiving())
-    #ser.write('AT+SAPBR=0,1\r\n'.encode('utf-8'))   #Close Bearer, ERROR not support
-    #print(receiving())
-    #ser.write('AT+HTTPSSL=?\r\n'.encode('utf-8'))   #https (SSL), ERROR not support
     #print(receiving())
 
     ser.write('AT+HTTPINIT\r\n'.encode('utf-8'))
@@ -143,93 +205,16 @@ def close_http():
 
 
 
-
-def send_tcp(param=1):
-    connect_tcp()
-    ser.write('AT+CIPSEND\r\n'.encode('utf-8')) 
-    #ser.write('AT+CIPSEND="HEAD/HTTP/1.1\r\nHost:www.taobao.com\r\nConnection:keep-alive\r\n\r\n"'.encode('utf-8'))
-    print(receiving(2))
-    
-    #ser.write('Hello!\r\n'.encode('utf-8'))    #for 101.132.43.66
-    ser.write('GET/HTTP/1.1'.encode('utf-8'))   #for www.taobao.com
-    #ser.write('1234567890ABCDEFGHIJ'.encode('utf-8')) #for 47.94.228.89
-    ser.write(chr(26).encode('utf-8'))          #結束輸入模式0x1A
-    print(receiving(3))
-    
-def read_tcp(param=1):  #read back
-    ser.write('AT+CIPSEND?\r\n'.encode('utf-8')) 
-    print(receiving(5))
-
-def connect_tcp():
-    #ser.write('AT+CIPSTART="TCP","iot.cht.com.tw",1883\r\n'.encode('utf-8'))   #for CHT mqtt
-    ser.write('AT+CIPSTART="TCP","www.taobao.com",80\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="tcp","101.132.43.66","80"\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="UDP","101.132.43.66","80"\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="tcp","47.94.228.89","4066"\r\n'.encode('utf-8'))
-    print(receiving(4))
-    #ser.write('AT+CIPATS=1,3\r\n'.encode('utf-8'))
-    #print(receiving(4))
-
-def close_tcp():       #Close TCP/UDP
-    ##################關閉連線###################
-    #ser.write('AT+CIPCLOSE=1\r\n'.encode('utf-8'))
-    ser.write('AT+CIPCLOSE\r\n'.encode('utf-8'))
-    print(receiving())
-
-
-
-
-def connect_mqtt():
-    ser.write('AT+SMCONF="CLIENTID","FISH"\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="KEEPTIME",60\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="QOS",1\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="USERNAME",'+apikey+'\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONF="PASSWORD",'+apikey+'\r\n'.encode('utf-8'))
-    print(receiving())
-
-    ser.write('AT+SMCONF="TOPIC","/v1/device/'+DeviceNum+'/rawdata"\r\n'.encode('utf-8')) #device num.
-    print(receiving())
-
-    data=[{"id":"Text","value":["SIM7000CCC"]}] 
-    ser.write('AT+SMCONF="MESSAGE",'.encode('utf-8') + ('"'+ json.dumps(data)+'"\r\n').encode('utf-8'))
-    print(receiving())
-
-    #ser.write('AT+SMCONF="URL","iot.cht.com.tw","1883"\r\n'.encode('utf-8'))
-    #ser.write('AT+SMCONF="URL","iot.cht.com.tw"'.format())
-    ser.write('AT+SMCONF="URL","iot.cht.com.tw"\r\n'.encode('utf-8'))
-    print(receiving())
-    ser.write('AT+SMCONN\r\n'.encode('utf-8'))
-    #Wait data for 3 sec.
-    print(receiving(3))
-
-def publish_http(sensor_number="Text", sensor_value="SIM7000C"): #發佈
-    #my_sensor_temp(self.DeviceNum, sensor_number, sensor_value)
-    data=[{"id":sensor_number,"value":[sensor_value]}]    
-    #return (json.dumps(data)+'\r\n').encode('utf-8')
-    ser.write('AT+SMCONF="MESSAGE",'.encode('utf-8') + ('"'+ json.dumps(data)+'"\r\n').encode('utf-8'))
-    print(receiving(1))
-
-def close_mqtt():       #Close TCP/UDP
-    ser.write('AT+SMDISC\r\n'.encode('utf-8'))
-    print(receiving(1))
-
-
-
-
 #echo 'AT+SAPBR=2,1\r\n' > /dev/ttyAMA0     #Under bash
-def receiving(timeout=0.25):     #簡單做法, 基礎用0.25秒計時, 否則自行定義
+def receiving(timeout=0.25):    #簡單做法, 基礎用0.25秒計時, 否則自行定義
     #ser.flushInput()           #清除接收緩衝區
     last_received=''
     while timeout>0:
-        time.sleep(0.125)
+        time.sleep(0.2)
         count = ser.inWaiting() #取得當下緩衝區字元數
         while count != 0:
             last_received += ser.read(count).decode('utf-8')    #getData += bytes.decode(ch)
-            time.sleep(0.125)       #
+            time.sleep(0.2)    #
             count = ser.inWaiting() #取得當下緩衝區字元數
         timeout = timeout-0.25
     return last_received
@@ -238,22 +223,27 @@ def init_comm():        #Module connect
     global ser
     if ser!='':
         ser.close()
-    ser = serial.Serial("/dev/ttyUSB3",115200)  #SIM7000C USB port
-    #ser = serial.Serial("/dev/ttyUSB4",115200)  #SIM7000C USB port
-    #ser = serial.Serial("/dev/ttyAMA0",115200) #Pi3,Pi4 serial port
-    #ser = serial.Serial("/dev/ttyS0",115200)  #Pi2 serial port
-    if ser=='':
+    try:
+        ser = serial.Serial("/dev/ttyUSB3",115200)  #SIM7000C USB port
+        #ser = serial.Serial("/dev/ttyUSB4",115200)  #SIM7000C USB port
+        #ser = serial.Serial("/dev/ttyAMA0",115200) #Pi3,Pi4 serial port
+        #ser = serial.Serial("/dev/ttyS0",115200)  #Pi2 serial port
+        if ser=='':
+            print("ser:null")
+            exit(1)
+        print(ser)
+        #st1 = threading.Thread(target=receiving, args=(ser,))
+        #st1.start()
+    except:
         print("ser:null")
         exit(1)
-    print(ser)
-    #st1 = threading.Thread(target=receiving, args=(ser,))
-    #st1.start()
 
 def shut_module():
     ser.write('AT+CIPSHUT\r\n'.encode('utf-8')) #Shut Down module (成功是LED 3秒閃爍一次)
     print(receiving())
     
 def init_module():      #LTE module test
+    '''Check module is ready'''
     ser.write('AT\r\n'.encode('utf-8'))         #同步測試
     if receiving()=='':
         GPIO.output(4,GPIO.HIGH)                #PWR pin Hi
@@ -265,19 +255,12 @@ def init_module():      #LTE module test
     print(receiving())
 
     #ser.write('AT+CGDCONT=1,"IP","internet.iot"\r\n'.encode('utf-8'))  #設定電信公司APN
-    ser.write('AT+CGDCONT=1,"IP",""\r\n'.encode('utf-8'))              #自動(由基地台決定)
+    ser.write('AT+CGDCONT=1,"IP",""\r\n'.encode('utf-8'))              #自動(由基地台決定), 不過要先激活PDP
     print(receiving())
     return 'OK'
 
-def lte_scanning():     #查詢掃描基地台(index,format,oper),(9 is NB-IOT,7 is CAT-M1)
-    ser.write('AT+COPS?\r\n'.encode('utf-8'))
-    print(receiving(3))
-
-    #ser.write('AT+COPS=?\r\n'.encode('utf-8')) #查詢詳細
-    #print(receiving(5))
-
 ################連線基地台LTE#################
-def lte_link():
+def lte_link():         #連線到...(尚失IP後here)
     ser.write('AT+SAPBR=3,1,"Contype","GPRS"\r\n'.encode('utf-8'))
     print(receiving())
     ser.write('AT+SAPBR=3,1,"APN","internet.iot"\r\n'.encode('utf-8'))
@@ -286,18 +269,26 @@ def lte_link():
     #print(receiving())
     #ser.write('AT+SAPBR=3,1,"PWD",""\r\n'.encode('utf-8'))
     #print(receiving())
-    #ser.write('AT+SAPBR=1,1\r\n'.encode('utf-8'))
-    #print(receiving(5))
+    
+    ser.write('at+cstt="internet.iot"\r\n'.encode('utf-8')) #連到internet網路
+    print(receiving(3))
+    ser.write('at+CIICR\r\n'.encode('utf-8'))   #啟動IP數據網路(成功是LED 0.5秒閃爍)
+    print(receiving(4))
 
 ################連線基地台GSM#################
-def link_GSM():
+def link_GSM():         #連線到...(尚失IP後here)
     ser.write('AT+CNMP=13\r\n'.encode('utf-8')) #Switch GSM only
     print(receiving())
     ser.write('AT+CMNB=3\r\n'.encode('utf-8'))
     print(receiving())
+    
+    ser.write('at+cstt="internet.iot"\r\n'.encode('utf-8')) #連到internet網路
+    print(receiving(3))
+    ser.write('at+CIICR\r\n'.encode('utf-8'))   #啟動IP數據網路(成功是LED 0.5秒閃爍)
+    print(receiving(4))
 
 ################連線基地台LTE#################
-def lte_linking():      #連線到...
+def lte_linking():      #連線到...(尚失IP後here)
     '''
     ser.write('at+cops=1,0,”46692”\r\n')   #連上基地台(中華電信), 第一次會花很長時間
     print(receiving(1))
@@ -321,15 +312,30 @@ def lte_linking():      #連線到...
     ser.write('at+CIICR\r\n'.encode('utf-8'))   #啟動IP數據網路(成功是LED 0.5秒閃爍)
     print(receiving(4))
 
+def lte_scanning():     #查詢掃描基地台(index,format,oper),(9 is NB-IOT,7 is CAT-M1)
+    ser.write('AT+COPS?\r\n'.encode('utf-8'))       #+COPS: 1,0,"Chunghwa Telecom",7
+    print(receiving(3))
+    #ser.write('AT+COPS=?\r\n'.encode('utf-8')) #查詢詳細
+    #print(receiving(5))
+
 def link_status():       #取得連線後帳號資訊
     ###########透過 AT+CGATT? & AT+CPSI? 指令來確認已連線基地台###########
-    ser.write('AT+CPSI?\r\n'.encode('utf-8'))   #查詢 註冊訊息
+    ser.write('AT+CPSI?\r\n'.encode('utf-8'))   #查詢 註冊訊息 +CPSI: LTE CAT-M1,Online,466-92,0x2CEC,28608801,434,EUTRAN-BAND3,1750,5,5,-6,-77,-57,16
     print(receiving())
-    ser.write('AT+CGATT?\r\n'.encode('utf-8'))  #註冊激活AT+CGATT=1 (自動運行) 1:表示可以正常使用數據
+    ser.write('AT+CGATT?\r\n'.encode('utf-8'))  #基站註冊激活AT+CGATT=1 (手動設置) +CGATT: 1 表示可以正常使用數據
     print(receiving())
-    ser.write('AT+CGNAPN\r\n'.encode('utf-8'))  #查詢系統APN
+    ser.write('AT+CGNAPN\r\n'.encode('utf-8'))  #查詢系統APN +CGNAPN: 1,"internet.iot"
     print(receiving())
-    ser.write('AT+SAPBR=4,1\r\n'.encode('utf-8'))   #查詢
+    ser.write('AT+SAPBR=2,1\r\n'.encode('utf-8'))   #查詢bearer setting +SAPBR: 1,1,"10.173.135.201"
+    print(receiving())
+    ser.write('AT+SAPBR=4,1\r\n'.encode('utf-8'))   #查詢bearer setting 
+    '''
+    +SAPBR:
+    CONTYPE: GPRS
+    APN: internet.iot
+    USER:
+    PWD:
+    '''
     print(receiving())
 
 def localip():          #取得連線後獲得的IP
@@ -350,37 +356,26 @@ def ping50():
 def function():
     try:
         #lte_scanning()     #查詢可以連線...?
-        #lte_link()       #連線到...基地台與internet
-        lte_linking()       #連線到...基地台與internet
+        #lte_link()       #連線到...基地台與internet online if OK
+        lte_linking()       #連線到...基地台與internet online if OK
         #############應用:查看IP################
         localip()
         #############應用:查詢連線狀態##########
         link_status()
-        #############應用:ping測試##############
-        #ping()
-        #ping50()
-        #############應用:TCP連線測試###########
-        '''
-        send_tcp()
-        read_tcp()
-        close_tcp()
-        '''
         #############應用:HTTP連線測試##########
         
         #get_http()
-        post_http()
+        #post_http()
+        #get_chtiot(DeviceNum, SensorsID="id")
+        #get_chtiot(DeviceNum, SensorsID="name")
+        get_chtiot(DeviceNum, SensorsID="done")
+        #post_chtiot(DeviceNum, data_cht)
         read_http()
         close_http()
         
-        #############應用:MQTT連線測試##########
-        '''
-        connect_mqtt()
-        close_mqtt()
-        '''
         status=1
         while True:
             localip()       #check & show my IP address
-            #link_status()
             #get_http()
             #read_http()
             if GPIO.input(26) == True:
@@ -414,7 +409,7 @@ if __name__ == '__main__':
     init_gpio()
     init_comm()
     #code.interact(local=locals())   #remark for auto-run ('#' cancel interact mode)
-    if init_module()=='OK':         #Initial SIM7000
+    if init_module()=='OK':         #Success initial SIM7000
         try:
             function()
         except KeyboardInterrupt: 
