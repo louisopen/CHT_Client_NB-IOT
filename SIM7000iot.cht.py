@@ -50,8 +50,8 @@ data = {"id":"id","value":[2]},{"id":"name","value":["LOUIS"]},{"id":"done","val
 def init_gpio():
     GPIO.setwarnings(False) 	#disable warnings
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(4,GPIO.OUT)     #PWR
-    GPIO.setup(26,GPIO.IN,pull_up_down=GPIO.PUD_UP)  #DTR
+    GPIO.setup(4,GPIO.OUT)     #PWR Control for Power ON or Power OFF
+    GPIO.setup(26,GPIO.IN,pull_up_down=GPIO.PUD_UP)  #DTR control
 
 def get_chtiot(DevicesID=DeviceNum, SensorsID="id"):
     '''Check local IP is ready'''
@@ -324,14 +324,16 @@ def init_comm():        #Module connect
         #ser = serial.Serial("/dev/ttyAMA0",115200) #Pi3,Pi4 serial port
         #ser = serial.Serial("/dev/ttyS0",115200)  #Pi2 serial port
         if ser=='':
-            print("ser:null")
-            exit(1)
+            #print("ser:null")
+            print("Check the serial port")
+            exit(1)     #terminate this program
         print(ser)
         #st1 = threading.Thread(target=receiving, args=(ser,))
         #st1.start()
     except:
-        print("ser:null")
-        exit(1)
+        #print("ser:null")
+        print("Check the serial port")
+        exit(1)     #terminate this program
 
 def shut_module():
     ser.write('AT+CIPSHUT\r\n'.encode('utf-8')) #Shut Down module (成功是LED 3秒閃爍一次)
@@ -341,6 +343,7 @@ def init_module():      #LTE module test
     '''Check module is ready'''
     ser.write('AT\r\n'.encode('utf-8'))         #同步測試
     if receiving()=='':
+        print('Turn ON PWR')
         GPIO.output(4,GPIO.HIGH)                #PWR pin Hi
         time.sleep(2)
         GPIO.output(4,GPIO.LOW)                 #PWR pin Low
@@ -523,10 +526,11 @@ if __name__ == '__main__':
             function()
         except KeyboardInterrupt: 
             shut_module()
-            if ser != None:  
-                ser.close()
         except:
             pass
         finally:
             #st1.join()
             GPIO.cleanup() 
+    if ser != None:  
+        ser.close()
+        GPIO.cleanup() 
