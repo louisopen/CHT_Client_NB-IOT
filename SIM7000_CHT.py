@@ -29,8 +29,8 @@ ser=''
 MQTTHOST = "iot.cht.com.tw"
 MQTTPORT = 1883
 apikey = "DKERAFHXXXXXXX335F"       #需要替代自己的
-#DeviceNum = "18030600759"          #需要替代自己的
-DeviceNum = "25997573353"           #需要替代自己的
+DeviceNum = "25997573353"           #"發電廠"
+
 '''#to 魚場
 #SensorsID="Temp" or "Text"         
 data_cht = [{"id":"Temp","value":["25.0"]},{"id":"Text","value":["SIM7-"]}]
@@ -47,71 +47,57 @@ def init_gpio():
 
 def get_chtiot(DevicesID=DeviceNum, SensorsID="id"):
     '''Check local IP is ready'''
-    try:
-        close_http()    #若是已經關閉會得到ERROR
-        init_http()
-        cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DevicesID +'/sensor/'+ SensorsID +'/rawdata"' #device num.
-        Send_AT(cmdstr, 2)
-        cmdstr='AT+HTTPPARA="USERDATA","CK: '+ apikey + '"'
-        Send_AT(cmdstr)
-        Send_AT('AT+HTTPACTION=0', 4)    #"GET" session return: +HTTPACTION: 0,601,0
-    except:
-        GPIO.cleanup()
+    close_http()    #若是已經關閉會得到ERROR
+    init_http()
+    cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DevicesID +'/sensor/'+ SensorsID +'/rawdata"' #device num.
+    Send_AT(cmdstr, 2)
+    cmdstr='AT+HTTPPARA="USERDATA","CK: '+ apikey + '"'
+    Send_AT(cmdstr)
+    Send_AT('AT+HTTPACTION=0', 4)    #"GET" session return: +HTTPACTION: 0,601,0
 
 def post_chtiot(DevicesID=DeviceNum, post_data=data_cht):
     '''Check local IP is ready'''
-    try:
-        close_http()
-        init_http()
-        #Send_AT('AT+HTTPSSL=1')   #https (SSL)
-        cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DevicesID +'/rawdata"'  #device num.
-        Send_AT(cmdstr)
-        cmdstr='AT+HTTPPARA="CONTENT","application/json"'
-        Send_AT(cmdstr)
-        cmdstr='AT+HTTPPARA="USERDATA","CK: '+ apikey + '"'
-        Send_AT(cmdstr)
+    close_http()
+    init_http()
+    #Send_AT('AT+HTTPSSL=1')   #https (SSL)
+    cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DevicesID +'/rawdata"'  #device num.
+    Send_AT(cmdstr)
+    cmdstr='AT+HTTPPARA="CONTENT","application/json"'
+    Send_AT(cmdstr)
+    cmdstr='AT+HTTPPARA="USERDATA","CK: '+ apikey + '"'
+    Send_AT(cmdstr)
 
-        cmdstr='AT+HTTPDATA=100,3000'
-        ser.write((cmdstr+'\r\n').encode('utf-8'))
-        time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
-        print(receiving())
-        ser.write(json.dumps(post_data).encode('utf-8')) #json or text
-        #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
-        print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
-        Send_AT('AT+HTTPACTION=1', 4)    #POST session return: +HTTPACTION: 1,601,0
-
-    except:
-        GPIO.cleanup()
+    cmdstr='AT+HTTPDATA=100,3000'
+    ser.write((cmdstr+'\r\n').encode('utf-8'))
+    time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
+    print(receiving())
+    ser.write(json.dumps(post_data).encode('utf-8')) #json or text
+    #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
+    print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
+    Send_AT('AT+HTTPACTION=1', 4)    #POST session return: +HTTPACTION: 1,601,0
 
 def read_http():
-    try:
-        Send_AT('AT+HTTPREAD', 6)           #read back the http
-        '''
-        Send_AT('AT+SAPBR=1,1')
-        Send_AT('AT+HTTPREAD', 4)           #read back the http
-        '''
-    except:
-        GPIO.cleanup()
+    Send_AT('AT+HTTPREAD', 6)           #read back the http
+    '''
+    Send_AT('AT+SAPBR=1,1')
+    Send_AT('AT+HTTPREAD', 4)           #read back the http
+    '''
 
 def init_http():
     '''Check local IP is ready'''
     '''Bearer Configure'''
-    try:
-        Send_AT('AT+SAPBR=3,1,"APN","internet.iot"')
-        Send_AT('AT+SAPBR=0,1')             #Close Bearer
-        Send_AT('AT+SAPBR=1,1')             #Open Bearer    firmware update need it
-        Send_AT('AT+SAPBR=2,1')             #Query Bearer
-        #Send_AT('AT+SAPBR=4,1')            #取得 Bearer
-        Send_AT('AT+HTTPINIT')
-        Send_AT('AT+HTTPPARA="CID",1')
-        #Send_AT('AT+HTTPPARA="REDIR",1')   #Enable HTTP redirect
-    except:
-        GPIO.cleanup()
+    Send_AT('AT+SAPBR=3,1,"APN","internet.iot"')
+    Send_AT('AT+SAPBR=0,1')             #Close Bearer
+    Send_AT('AT+SAPBR=1,1')             #Open Bearer    firmware update need it
+    Send_AT('AT+SAPBR=2,1')             #Query Bearer
+    #Send_AT('AT+SAPBR=4,1')            #取得 Bearer
+    Send_AT('AT+HTTPINIT')
+    Send_AT('AT+HTTPPARA="CID",1')
+    #Send_AT('AT+HTTPPARA="REDIR",1')   #Enable HTTP redirect
+
 def close_http():
-    try:
-        Send_AT('AT+HTTPTERM')              #HTTP Terminal mode #若是已經關閉會得到ERROR
-    except:
-        GPIO.cleanup()
+    Send_AT('AT+HTTPTERM')              #HTTP Terminal mode #若是已經關閉會得到ERROR
+
 
 
 
@@ -290,8 +276,8 @@ def function():
     
     #get_chtiot(DeviceNum, SensorsID="id")
     #get_chtiot(DeviceNum, SensorsID="name")
-    get_chtiot(DeviceNum, SensorsID="done")
-    #post_chtiot(DeviceNum, data_cht)
+    #get_chtiot(DeviceNum, SensorsID="done")
+    post_chtiot(DeviceNum, data_cht)
     read_http()
     close_http()
     

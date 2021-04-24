@@ -29,8 +29,8 @@ ser=''
 MQTTHOST = "iot.cht.com.tw"
 MQTTPORT = 1883
 apikey = "DKERAFHXXXXXXX335F"      #需要替代自己的
-#DeviceNum = "18030600759"          #需要替代自己的
-DeviceNum = "25997573353"           #需要替代自己的
+DeviceNum = "25997573353"           #"發電廠"
+
 '''
 #SensorsID = "Temp" or "Text"
 data_cht = [{"id":"Temp","value":["25.0"]},{"id":"Text","value":["SIM7-"]}]
@@ -38,7 +38,6 @@ data_cht = [{"id":"Temp","value":["25.0"]},{"id":"Text","value":["SIM7-"]}]
 #SensorsID = "id" or "name" or "done"
 data_cht = [{"id":"id","value":[2]},{"id":"name","value":["JIM{"]},{"id":"done","value":[1]}]
 
-data = {"id":"4","name":"LOUIS","done":"True"}   #39 for json
 
 def init_gpio():
     GPIO.setwarnings(False) 	#disable warnings
@@ -66,106 +65,28 @@ def get_chtiot(DevicesID=DeviceNum, SensorsID="id"):
 
 def post_chtiot(DevicesID=DeviceNum, post_data=data_cht):
     '''Check local IP is ready'''
-    try:
-        close_http()
-        init_http()
-        #ser.write('AT+HTTPSSL=1\r\n'.encode('utf-8'))   #https (SSL)
-        #print(receiving())
-        cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DevicesID +'/rawdata"'  #device num.
-        ser.write((cmdstr+'\r\n').encode('utf-8'))
-        print(receiving())
-        cmdstr='AT+HTTPPARA="CONTENT","application/json"'
-        ser.write((cmdstr+'\r\n').encode('utf-8'))
-        print(receiving())
-        cmdstr='AT+HTTPPARA="USERDATA","CK: '+ apikey + '"'
-        ser.write((cmdstr+'\r\n').encode('utf-8'))
-        print(receiving())
-        cmdstr='AT+HTTPDATA=100,3000'
-        ser.write((cmdstr+'\r\n').encode('utf-8'))
-        time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
-        print(receiving())
-        ser.write(json.dumps(post_data).encode('utf-8')) #json or text
-        #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
-        print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
-        ser.write('AT+HTTPACTION=1\r\n'.encode('utf-8'))    #POST session return: +HTTPACTION: 1,601,0
-        print(receiving(4))
-    except:
-        GPIO.cleanup()
-
-def get_http():
-    '''Check local IP is ready'''
-    close_http()    #若是已經關閉會得到ERROR
+    close_http()
     init_http()
-    #cmdstr='AT+HTTPPARA="URL","http://www.m2msupport.net/m2msupport/test.php"' #GET "test"
-    #cmdstr='AT+HTTPPARA="URL","http://httpbin.org/get"'        #GET the sample
-    #cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot"'     #GET my test page
-    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/index.html"'    #GET my test page
-    cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getdata"'       #GET my test page
-    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getset/1"'      #GET my test page
-    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getpost/1/LOUIS"'    #my json server
+    #ser.write('AT+HTTPSSL=1\r\n'.encode('utf-8'))   #https (SSL)
+    #print(receiving())
+    cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DevicesID +'/rawdata"'  #device num.
     ser.write((cmdstr+'\r\n').encode('utf-8'))
-    print(receiving(2))
-    ser.write('AT+HTTPACTION=0\r\n'.encode('utf-8'))    #"GET" session return: +HTTPACTION: 0,601,0
+    print(receiving())
+    cmdstr='AT+HTTPPARA="CONTENT","application/json"'
+    ser.write((cmdstr+'\r\n').encode('utf-8'))
+    print(receiving())
+    cmdstr='AT+HTTPPARA="USERDATA","CK: '+ apikey + '"'
+    ser.write((cmdstr+'\r\n').encode('utf-8'))
+    print(receiving())
+    cmdstr='AT+HTTPDATA=100,3000'
+    ser.write((cmdstr+'\r\n').encode('utf-8'))
+    time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
+    print(receiving())
+    ser.write(json.dumps(post_data).encode('utf-8')) #json or text
+    #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
+    print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
+    ser.write('AT+HTTPACTION=1\r\n'.encode('utf-8'))    #POST session return: +HTTPACTION: 1,601,0
     print(receiving(4))
-    #time.sleep(1)
-
-def post_http():
-    '''Check local IP is ready'''
-    try:
-        close_http()
-        init_http()
-        #ser.write('AT+HTTPSSL=1\r\n'.encode('utf-8'))   #https (SSL)
-        #print(receiving())
-        #cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot/v1/device/'+ DeviceNum + '/rawdata"'  #device num.
-        cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postreturn"' #my server
-        #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson"'  #my json server
-        #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson'+'?"id"="4"&"name"="LOUIS"&"done"="True"'   #my json
-        ser.write((cmdstr+'\r\n').encode('utf-8'))
-        print(receiving())
-        '''
-        ser.write('AT+HTTPPARA="UA",80\r\n'.encode('utf-8'))   #tcp port: default is 80
-        print(receiving())
-        ser.write('AT+HTTPPARA="PROIP","10.0.0.172"\r\n'.encode('utf-8'))   #Proxy IP ?
-        print(receiving())
-        ser.write('AT+HTTPPARA="PROPORT",80\r\n'.encode('utf-8'))   #Proxy port ?
-        print(receiving())
-        ser.write('AT+HTTPPARA="TIMEOUT",60\r\n'.encode('utf-8'))   #default 120sec.
-        print(receiving())
-        '''
-        '''header setting'''
-        #ser.write('AT+HTTPPARA="CONTENT","text/plain"\r\n'.encode('utf-8'))
-        #ser.write('AT+HTTPPARA="CONTENT","multipart/form-data"\r\n'.encode('utf-8'))
-        #ser.write('AT+HTTPPARA="CONTENT","text/html"\r\n'.encode('utf-8'))  #Content-Type of headers
-        ser.write('AT+HTTPPARA="CONTENT","application/json"\r\n'.encode('utf-8'))  #Content-Type of headers
-        #ser.write('AT+HTTPPARA=CONTENT,application/x-www-form-urlencoded\r\n'.encode('utf-8')) #Content-Type of headers
-        print(receiving())
-        #ser.write('AT+HTTPPARA="USERDATA","TEST MESSAGE"\r\n'.encode('utf-8'))
-        ser.write('AT+HTTPPARA="USERDATA","accept:application/json, CK: DKERAFHXXXXXXX335F"\r\n'.encode('utf-8'))
-        print(receiving())
-        #ser.write('AT+HTTPPARA?\r\n'.encode('utf-8'))
-        #print(receiving(3))
-        '''body setting'''
-        '''
-        ser.write('AT+HTTPDATA=12,3000\r\n'.encode('utf-8'))   #size,time(ms) with in 3sec.
-        time.sleep(1)   #坑阿!!!
-        ser.write('TEST MESSAGE\r\n'.encode('utf-8'))   #for "text/html"
-        '''
-        ser.write('AT+HTTPDATA=100,3000\r\n'.encode('utf-8'))   #size,time(ms) with in 3sec.
-        time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
-        #ser.write('{"id":"4","name":"LOUIS","done":"True"}\r\n'.encode('utf-8')) #for "text/plain"        
-        #ser.write(json.dumps({"id":"4","name":"LOUIS","done":"True"}).encode('utf-8')) #json or text
-        ser.write(json.dumps(data).encode('utf-8')) #json or text
-        #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
-        print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
-        
-        ser.write('AT+HTTPACTION=1\r\n'.encode('utf-8'))    #POST session return: +HTTPACTION: 1,601,0
-        print(receiving(4))
-        #ser.write('AT+HTTPSTATUS?\r\n'.encode('utf-8'))
-        #print(receiving(3))
-        #ser.write('AT+HTTPHEAD\r\n'.encode('utf-8'))
-        #print(receiving(3))
-    except:
-        GPIO.cleanup()
 
 def read_http():
     ser.write('AT+HTTPREAD\r\n'.encode('utf-8'))        #read back the http
@@ -364,8 +285,6 @@ def function():
         link_status()
         #############應用:HTTP連線測試##########
         
-        #get_http()
-        #post_http()
         #get_chtiot(DeviceNum, SensorsID="id")
         #get_chtiot(DeviceNum, SensorsID="name")
         #get_chtiot(DeviceNum, SensorsID="done")
