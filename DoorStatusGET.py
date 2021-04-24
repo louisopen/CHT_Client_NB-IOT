@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 #coding=utf-8
-#測試: 利用http協議直接傳送狀態回服務器, 在CAT-M1
-'''NET LED: of SIM7000C
+#測試: 利用http協議直接傳送狀態回服務器, 在CAT-M1 or NB-IOT
+'''NET LED: (SIM7000C module)
 Standby: 開機1秒閃爍週期
 Internet online: 0.5秒閃爍週期
 Shuntdowm: 是3秒閃爍週期
 PowerDown: 熄滅
 '''
-#Setup Raspberry pi system 
+#Raspberry pi need to setup 
 #sudo raspi-config      #Interfacing Options -> Serial login -> no, Serial hardware -> yes
 #sudo nano /boot/config.txt     #add==> enable_uart=1
 #sudo nano /boot/cmdline.txt    #deleted "console=ttyAMA0,115200 kgdboc=ttyAMA0,115200"
-#sudo apt-get install minicom   #Try application
-#minicom -D /dev/ttyAMA0 -b115200     #Raspberry pi3
+#sudo apt-get install minicom   #for try AT command
+#minicom -D /dev/ttyAMA0 -b115200     #Run minicom for Raspberry pi3 pi4
 
 #cd /SIM7000C/bcm2835
 #chmod +x configure && ./configure && sudo make && sudo make install    #遮個才成功

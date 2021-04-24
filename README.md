@@ -36,8 +36,8 @@ or
 
 * sudo nano /home/pi/autorun.sh
 * ...
-* python3 SIM7000iot.cht.py
+* python3 SIM7000_CHT.py
 * ...
 
-#### 3. Coding/Testing SIM7000iot.cht.py
+#### 3. Coding & Testing SIM7000_CHT.py
 #### 試試

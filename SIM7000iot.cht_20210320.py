@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 #coding=utf-8
-#測試: 利用http協議直接傳送狀態回服務器, 在CAT-M1
-'''NET LED: of SIM7000C
+#測試: 利用http協議直接傳送狀態回服務器, 在CAT-M1 or NB-IOT
+'''NET LED: (SIM7000C module)
 Standby: 開機1秒閃爍週期
 Internet online: 0.5秒閃爍週期
 Shuntdowm: 是3秒閃爍週期
 PowerDown: 熄滅
 '''
-#Setup Raspberry pi system 
+#Raspberry pi need to setup 
 #sudo raspi-config      #Interfacing Options -> Serial login -> no, Serial hardware -> yes
 #sudo nano /boot/config.txt     #add==> enable_uart=1
 #sudo nano /boot/cmdline.txt    #deleted "console=ttyAMA0,115200 kgdboc=ttyAMA0,115200"
-#sudo apt-get install minicom   #Try application
-#minicom -D /dev/ttyAMA0 -b115200     #Raspberry pi3
+#sudo apt-get install minicom   #for try AT command
+#minicom -D /dev/ttyAMA0 -b115200     #Run minicom for Raspberry pi3 pi4
 
 #cd /SIM7000C/bcm2835
 #chmod +x configure && ./configure && sudo make && sudo make install    #遮個才成功
@@ -32,26 +32,23 @@ apikey = "DKERAFHXXXXXXX335F"      #需要替代自己的
 #DeviceNum = "18030600759"          #需要替代自己的
 DeviceNum = "25997573353"           #需要替代自己的
 '''
-#SensorsID="Temp" or "Text"         #魚場
+#SensorsID = "Temp" or "Text"
 data_cht = [{"id":"Temp","value":["25.0"]},{"id":"Text","value":["SIM7-"]}]
 '''
-#SensorsID="id" or "name" or "done" #發電廠
-data_cht = [{"id":"id","value":[2]},{"id":"name","value":["LOUIS"]},{"id":"done","value":[1]}]
+#SensorsID = "id" or "name" or "done"
+data_cht = [{"id":"id","value":[2]},{"id":"name","value":["JIM{"]},{"id":"done","value":[1]}]
 
-#data = '{id:4, name:LOUIS, done: True}'
-#data = [{"id":4, "name":"LOUIS", "done": "True"}]
-#data = [{"id":"4", "name":"LOUIS", "done": "True"}]
-#data = {"id":4,"name":"LOUIS","done":"True"}
-data = {"id":"id","value":[2]},{"id":"name","value":["LOUIS"]},{"id":"done","value":["True"]}
-#data = [{"id":"id","value":"2"},{"id":"name","value":"LOUIS"},{"id":"done","value":"True"}]
-#data = [{"id":"id","value":2},{"id":"name","value":"LOUIS"},{"id":"done","value":"True"}]
-#data = [{"id":"id","value":[2]},{"id":"name","value":["LOUIS"]},{"id":"done","value":["True"]}]
+data = {"id":"4","name":"LOUIS","done":"True"}   #39 for json
 
 def init_gpio():
     GPIO.setwarnings(False) 	#disable warnings
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(4,GPIO.OUT)     #PWR Control for Power ON or Power OFF
-    GPIO.setup(26,GPIO.IN,pull_up_down=GPIO.PUD_UP)  #DTR control
+    GPIO.setup(4,GPIO.OUT)     #PWR
+    GPIO.setup(26,GPIO.IN,pull_up_down=GPIO.PUD_UP)  #DTR
+
+    #GPIO.output(4,GPIO.HIGH)
+    #time.sleep(2)
+    #GPIO.output(4,GPIO.LOW)
 
 def get_chtiot(DevicesID=DeviceNum, SensorsID="id"):
     '''Check local IP is ready'''
@@ -95,80 +92,6 @@ def post_chtiot(DevicesID=DeviceNum, post_data=data_cht):
     except:
         GPIO.cleanup()
 
-def get_http():
-    '''Check local IP is ready'''
-    close_http()    #若是已經關閉會得到ERROR
-    init_http()
-    #cmdstr='AT+HTTPPARA="URL","http://www.m2msupport.net/m2msupport/test.php"' #GET "test"
-    #cmdstr='AT+HTTPPARA="URL","http://httpbin.org/get"'        #GET the sample
-    #cmdstr='AT+HTTPPARA="URL","http://iot.cht.com.tw/iot"'     #GET my test page
-    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/index.html"'    #GET my test page
-    cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getdata"'       #GET my test page
-    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getset/1"'      #GET my test page
-    #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/getpost/1/LOUIS"'    #my json server
-    ser.write((cmdstr+'\r\n').encode('utf-8'))
-    print(receiving(2))
-    ser.write('AT+HTTPACTION=0\r\n'.encode('utf-8'))    #"GET" session return: +HTTPACTION: 0,601,0
-    print(receiving(4))
-    #time.sleep(1)
-
-def post_http():
-    '''Check local IP is ready'''
-    try:
-        close_http()
-        init_http()
-        #ser.write('AT+HTTPSSL=1\r\n'.encode('utf-8'))   #https (SSL)
-        #print(receiving())
-        #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postreturn"' #my server
-        cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson"'  #my json server
-        #cmdstr='AT+HTTPPARA="URL","http://123.194.136.153:5000/postjson'+'?"id"="4"&"name"="LOUIS"&"done"="True"'   #my json
-        ser.write((cmdstr+'\r\n').encode('utf-8'))
-        print(receiving())
-        '''
-        ser.write('AT+HTTPPARA="UA",80\r\n'.encode('utf-8'))   #tcp port: default is 80
-        print(receiving())
-        ser.write('AT+HTTPPARA="PROIP","10.0.0.172"\r\n'.encode('utf-8'))   #Proxy IP ?
-        print(receiving())
-        ser.write('AT+HTTPPARA="PROPORT",80\r\n'.encode('utf-8'))   #Proxy port ?
-        print(receiving())
-        ser.write('AT+HTTPPARA="TIMEOUT",60\r\n'.encode('utf-8'))   #default 120sec.
-        print(receiving())
-        '''
-        '''header setting'''
-        #ser.write('AT+HTTPPARA="CONTENT","text/plain"\r\n'.encode('utf-8'))
-        #ser.write('AT+HTTPPARA="CONTENT","multipart/form-data"\r\n'.encode('utf-8'))
-        #ser.write('AT+HTTPPARA="CONTENT","text/html"\r\n'.encode('utf-8'))  #Content-Type of headers
-        ser.write('AT+HTTPPARA="CONTENT","application/json"\r\n'.encode('utf-8'))  #Content-Type of headers
-        #ser.write('AT+HTTPPARA=CONTENT,application/x-www-form-urlencoded\r\n'.encode('utf-8')) #Content-Type of headers
-        print(receiving())
-        #ser.write('AT+HTTPPARA="USERDATA","TEST MESSAGE"\r\n'.encode('utf-8'))
-        ser.write('AT+HTTPPARA="USERDATA","accept:application/json, CK: DKERAFHXXXXXXX335F"\r\n'.encode('utf-8'))
-        print(receiving())
-        #ser.write('AT+HTTPPARA?\r\n'.encode('utf-8'))
-        #print(receiving(3))
-        '''body setting'''
-        '''
-        ser.write('AT+HTTPDATA=12,3000\r\n'.encode('utf-8'))   #size,time(ms) with in 3sec.
-        time.sleep(1)   #坑阿!!!
-        ser.write('TEST MESSAGE\r\n'.encode('utf-8'))   #for "text/html"
-        '''
-        ser.write('AT+HTTPDATA=100,3000\r\n'.encode('utf-8'))   #size,time(ms) with in 3sec.
-        time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
-        #ser.write('{"id":"4","name":"LOUIS","done":"True"}\r\n'.encode('utf-8')) #for "text/plain"        
-        #ser.write(json.dumps({"id":"4","name":"LOUIS","done":"True"}).encode('utf-8')) #json or text
-        ser.write(json.dumps(data).encode('utf-8')) #json or text
-        #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
-        print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
-        
-        ser.write('AT+HTTPACTION=1\r\n'.encode('utf-8'))    #POST session return: +HTTPACTION: 1,601,0
-        print(receiving(4))
-        #ser.write('AT+HTTPSTATUS?\r\n'.encode('utf-8'))
-        #print(receiving(3))
-        #ser.write('AT+HTTPHEAD\r\n'.encode('utf-8'))
-        #print(receiving(3))
-    except:
-        GPIO.cleanup()
-
 def read_http():
     ser.write('AT+HTTPREAD\r\n'.encode('utf-8'))        #read back the http
     print(receiving(6))
@@ -202,50 +125,6 @@ def init_http():
 
 def close_http():
     ser.write('AT+HTTPTERM\r\n'.encode('utf-8'))        #HTTP Terminal mode #若是已經關閉會得到ERROR
-    print(receiving())
-
-
-
-def send_tcp(param=1):
-    '''Check local IP is ready before connect'''
-    connect_tcp()
-    ser.write('AT+CIPSEND\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSEND="HEAD/HTTP/1.1\r\nHost:www.taobao.com\r\nConnection:keep-alive\r\n\r\n"'.encode('utf-8'))
-    print(receiving(2))
-    
-    #ser.write('Hello!\r\n'.encode('utf-8'))    #for 101.132.43.66
-    ser.write('GET/HTTP/1.1'.encode('utf-8'))   #for www.taobao.com
-    #ser.write('1234567890ABCDEFGHIJ'.encode('utf-8')) #for 47.94.228.89
-
-    ser.write(chr(26).encode('utf-8'))          #結束輸入模式0x1A
-    print(receiving(3))
-    
-def read_tcp(param=1):  #read back
-    ser.write('AT+CIPSEND?\r\n'.encode('utf-8')) 
-    print(receiving(5))
-
-def connect_tcp():
-    '''Check local IP is ready'''
-    ser.write('AT+CIPSTART="TCP","postman-echo.com","80"\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="TCP","123.194.136.153",5000\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="TCP","www.taobao.com",80\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="tcp","101.132.43.66","80"\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="UDP","101.132.43.66","80"\r\n'.encode('utf-8'))
-    #ser.write('AT+CIPSTART="tcp","47.94.228.89","4066"\r\n'.encode('utf-8'))
-    print(receiving(2))
-    #ser.write('AT+CIPATS=1,3\r\n'.encode('utf-8'))
-    #print(receiving(4))
-    ser.write('AT+CIPSEND\r\n'.encode('utf-8'))
-    print(receiving())
-    '''>
-    GET https://postman-echo.com/ip HTTP/1.0
-    Host:www.m2msupport.netConnection:keep-alive
-    Ctrl+Z
-    '''
-def close_tcp():       #Close TCP/UDP
-    ##################關閉連線###################
-    #ser.write('AT+CIPCLOSE=1\r\n'.encode('utf-8'))
-    ser.write('AT+CIPCLOSE\r\n'.encode('utf-8'))
     print(receiving())
 
 
@@ -324,16 +203,14 @@ def init_comm():        #Module connect
         #ser = serial.Serial("/dev/ttyAMA0",115200) #Pi3,Pi4 serial port
         #ser = serial.Serial("/dev/ttyS0",115200)  #Pi2 serial port
         if ser=='':
-            #print("ser:null")
-            print("Check the serial port")
-            exit(1)     #terminate this program
+            print("ser:null")
+            exit(1)
         print(ser)
         #st1 = threading.Thread(target=receiving, args=(ser,))
         #st1.start()
     except:
-        #print("ser:null")
-        print("Check the serial port")
-        exit(1)     #terminate this program
+        print("ser:null")
+        exit(1)
 
 def shut_module():
     ser.write('AT+CIPSHUT\r\n'.encode('utf-8')) #Shut Down module (成功是LED 3秒閃爍一次)
@@ -343,7 +220,6 @@ def init_module():      #LTE module test
     '''Check module is ready'''
     ser.write('AT\r\n'.encode('utf-8'))         #同步測試
     if receiving()=='':
-        print('Turn ON PWR')
         GPIO.output(4,GPIO.HIGH)                #PWR pin Hi
         time.sleep(2)
         GPIO.output(4,GPIO.LOW)                 #PWR pin Low
@@ -452,70 +328,52 @@ def ping50():
     print(receiving(3))
 
 def function():
-    try:
-        #lte_scanning()     #查詢可以連線...?
-        #lte_link()       #連線到...基地台與internet online if OK
-        lte_linking()       #連線到...基地台與internet online if OK
-        #############應用:查看IP################
-        localip()
-        #############應用:查詢連線狀態##########
-        link_status()
-        #############應用:ping測試##############
-        #ping()
-        #ping50()
-        #############應用:TCP連線測試###########
-        '''
-        send_tcp()
-        read_tcp()
-        close_tcp()
-        '''
-        #############應用:HTTP連線測試##########
-        
+    #lte_scanning()     #查詢可以連線...?
+    #lte_link()       #連線到...基地台與internet online if OK
+    lte_linking()       #連線到...基地台與internet online if OK
+    #############應用:查看IP################
+    localip()
+    #############應用:查詢連線狀態##########
+    link_status()
+    #############應用:ping測試##############
+    #ping()
+    #ping50()
+    #############應用:HTTP連線測試##########
+    
+    #get_chtiot(DeviceNum, SensorsID="id")
+    #get_chtiot(DeviceNum, SensorsID="name")
+    get_chtiot(DeviceNum, SensorsID="done")
+    #post_chtiot(DeviceNum, data_cht)
+    read_http()
+    close_http()
+    
+    #############應用:MQTT連線測試##########
+    '''
+    connect_mqtt()
+    close_mqtt()
+    '''
+    status=1
+    while True:
+        localip()       #check & show my IP address
         #get_http()
-        post_http()
-        #get_chtiot(DeviceNum, SensorsID="id")
-        #get_chtiot(DeviceNum, SensorsID="name")
-        #get_chtiot(DeviceNum, SensorsID="done")
-        #post_chtiot(DeviceNum, data_cht)
-        read_http()
-        close_http()
-        
-        #############應用:MQTT連線測試##########
-        '''
-        connect_mqtt()
-        close_mqtt()
-        '''
-        status=1
-        while True:
-            localip()       #check & show my IP address
-            #get_http()
-            #read_http()
-            if GPIO.input(26) == True:
-                if status==1:
-                    #post_http(1)
-                    
-                    print("STATUS: Close")
-                    status=0
-                else:
-                    pass
+        #read_http()
+        if GPIO.input(26) == True:
+            if status==1:
+                #post_http(1)
+                
+                print("STATUS: Close")
+                status=0
             else:
-                if status==0:
-                    #post_http(0)
-                    
-                    print("STATUS: Open")
-                    status=1
-                else:
-                    pass
-            time.sleep(3)
-    except KeyboardInterrupt: 
-        shut_module()
-        if ser != None:  
-            ser.close()
-    except:
-        pass
-    finally:
-        #st1.join()
-        GPIO.cleanup() 
+                pass
+        else:
+            if status==0:
+                #post_http(0)
+                
+                print("STATUS: Open")
+                status=1
+            else:
+                pass
+        time.sleep(3)
 
 if __name__ == '__main__':
     init_gpio()
@@ -526,11 +384,10 @@ if __name__ == '__main__':
             function()
         except KeyboardInterrupt: 
             shut_module()
+            if ser != None:  
+                ser.close()
         except:
             pass
         finally:
             #st1.join()
             GPIO.cleanup() 
-    if ser != None:  
-        ser.close()
-        GPIO.cleanup() 
