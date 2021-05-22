@@ -1,6 +1,8 @@
 ### CHT_Client_NB-IOT 
 
-> Python client application SIM7000C of NB-IOT module on Raspberry Pi, SIM7000C終端應用運行在樹莓派上, SIM7000C NB-IoT/LTE/GPRS 擴展板模組, CHT SIM card(大卡) 採用中華電信CAT. M1(門市申請即可)
+> Python client application SIM7000C of NB-IOT module on Raspberry Pi, SIM7000C終端應用運行在樹莓派上, SIM7000C NB-IoT/LTE/GPRS 擴展板模組, CHT SIM card(大卡) 採用中華電信CAT. M1(門市申請即可, 據說已經改為企業才可申請)
+> 我使用的SIM7000C NB-IoT HAT串口似乎有問題(/dev/ttyAMA0), 無法使用UART只能用USB port(/dev/ttyUSB3)
+> SIM7000C NB-IoT HAT與Raspberry pi通訊時要注意SIM7000C模組速度較慢, 注意反饋訊息的檢查, 否則會採坑!!!
 
 #### 1. Close power-saving of the display on Raspberry Pi
 #### 先關閉視窗下螢幕休眠功能(當然也可以不用關閉)

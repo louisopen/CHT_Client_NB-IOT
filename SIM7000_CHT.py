@@ -2,8 +2,8 @@
 #coding=utf-8
 #測試: 利用http協議直接傳送狀態回服務器, 在CAT-M1 or NB-IOT
 '''NET LED: (SIM7000C module)
-Standby: 開機1秒閃爍週期
 Internet online: 0.5秒閃爍週期
+Standby: 開機1秒閃爍週期
 Shuntdowm: 是3秒閃爍週期
 PowerDown: 熄滅
 '''
@@ -22,15 +22,11 @@ import time
 import serial
 #import threading
 import json
-import paho.mqtt.client as mqtt     #pip3 install paho-mqtt          #要搞這個
+import paho.mqtt.client as mqtt #pip3 install paho-mqtt          #要搞這個
 import code 
+from Config_CHT import *        #我的中華電信port , deviceID, SensorID
 
 ser=''
-MQTTHOST = "iot.cht.com.tw"
-MQTTPORT = 1883
-apikey = "DKERAFHXXXXXXX335F"       #需要替代自己的
-DeviceNum = "25997573353"           #"發電廠"
-
 '''#to 魚場
 #SensorsID="Temp" or "Text"         
 data_cht = [{"id":"Temp","value":["25.0"]},{"id":"Text","value":["SIM7-"]}]
@@ -68,13 +64,17 @@ def post_chtiot(DevicesID=DeviceNum, post_data=data_cht):
     Send_AT(cmdstr)
 
     cmdstr='AT+HTTPDATA=100,3000'
+    '''
     ser.write((cmdstr+'\r\n').encode('utf-8'))
-    time.sleep(0.5)   #坑阿!!!SIM7000處理不來???
+    time.sleep(0.5)                 #坑阿!!!SIM7000處理不來???
     print(receiving())
-    ser.write(json.dumps(post_data).encode('utf-8')) #json or text
-    #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
-    print(receiving(3.8))   #坑阿!!!SIM7000處理不來???
-    Send_AT('AT+HTTPACTION=1', 4)    #POST session return: +HTTPACTION: 1,601,0
+    '''
+    cmdstr = Send_AT(cmdstr, ret='DOWNLOAD')
+    if cmdstr == 'DOWNLOAD':
+        ser.write(json.dumps(post_data).encode('utf-8')) #json or text
+        #ser.write(chr(26).encode('utf-8')) #調整DOWNLOAD時間達到目的, 否則會多一個字元(Ctrl+z)
+        print(receiving(3.8))           #坑阿!!!SIM7000處理不來???
+        Send_AT('AT+HTTPACTION=1', 4)   #POST session return: +HTTPACTION: 1,601,0
 
 def read_http():
     Send_AT('AT+HTTPREAD', 6)           #read back the http
@@ -144,19 +144,32 @@ def close_mqtt():       #Close TCP/UDP
 def receiving(timeout=0.25):    #簡單做法, 基礎用0.25秒計時, 否則自行定義
     #ser.flushInput()           #清除接收緩衝區
     last_received=''
-    while timeout>0:
-        time.sleep(0.2)
-        count = ser.inWaiting() #取得當下緩衝區字元數
-        while count != 0:
-            last_received += ser.read(count).decode('utf-8')    #getData += bytes.decode(ch)
-            time.sleep(0.2)    #
+    try:
+        while timeout>0:
+            time.sleep(0.2)
             count = ser.inWaiting() #取得當下緩衝區字元數
-        timeout = timeout-0.25
-    return last_received.strip()
+            while count != 0:
+                last_received += ser.read(count).decode('utf-8')    #getData += bytes.decode(ch)
+                time.sleep(0.2)    #
+                count = ser.inWaiting() #取得當下緩衝區字元數
+            timeout = timeout-0.25
+        return last_received.strip()
 
-def Send_AT(cmd, timeout=0.25):
+    except IOError as ex:
+        raise RuntimeError('Failed to serial port') from ex
+    except Exception as ex:
+        raise ex
+
+def Send_AT(cmd, timeout=0.25, ret='OK'):
     ser.write((cmd+'\r\n').encode('utf-8')) 
-    print(receiving(timeout=timeout))
+    #print(receiving(timeout=timeout))
+    data = receiving(timeout=timeout)
+    print(data)
+    if ret in data:
+        #return 'OK'
+        return ret
+    else:
+        return 'ERROR'
 
 def init_comm():        #Module connect 
     global ser
@@ -174,10 +187,9 @@ def init_comm():        #Module connect
         print(ser)
         #st1 = threading.Thread(target=receiving, args=(ser,))
         #st1.start()
-    except:
-        #print("ser:null")
-        print("Check the serial port")
-        exit(1)     #terminate this program
+    except Exception as ex:
+        #raise Exception('Failed to open') from ex
+        raise ex
 
 def shut_module():
     Send_AT('AT+CIPSHUT') #Shut Down module (成功是LED 3秒閃爍一次)
